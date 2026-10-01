@@ -156,6 +156,7 @@ export interface PriceHistory {
   store_id: string | null;
   price: number;
   recorded_at: string;
+  store?: { name: string } | null;
 }
 
 export interface Category {

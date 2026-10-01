@@ -39,10 +39,12 @@ export default function PriceComparison({ phone, variantId }: PriceComparisonPro
   // Use refreshKey to force re-render of freshness indicators
   void refreshKey;
 
-  const sorted = [...prices].sort((a, b) => a.price - b.price);
+  const numPrice = (v: number | string | null | undefined) => { if (v === null || v === undefined) return 0; return typeof v === 'number' ? v : parseFloat(v) || 0; };
+
+  const sorted = [...prices].sort((a, b) => numPrice(a.price) - numPrice(b.price));
   const lowest = sorted[0];
   const highest = sorted[sorted.length - 1];
-  const priceDiff = highest.price - lowest.price;
+  const priceDiff = numPrice(highest.price) - numPrice(lowest.price);
 
   // Determine overall freshness
   const mostRecentCheck = sorted.reduce((latest, sp) => {
@@ -80,7 +82,7 @@ export default function PriceComparison({ phone, variantId }: PriceComparisonPro
             <p className="text-xs text-green-700 dark:text-green-400 font-medium flex items-center gap-1">
               <Zap className="w-3.5 h-3.5" /> Lowest Price
             </p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatPrice(lowest.price)}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatPrice(numPrice(lowest.price))}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">at {lowest.store?.name}</p>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -113,7 +115,7 @@ export default function PriceComparison({ phone, variantId }: PriceComparisonPro
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {sorted.map((sp: StorePrice) => {
               const isLowest = sp.id === lowest.id;
-              const discount = discountPercent(sp.mrp, sp.price);
+              const discount = discountPercent(numPrice(sp.mrp) ?? 0, numPrice(sp.price));
               const freshness = getPriceFreshness(sp.last_checked_at);
               const mins = minutesSince(sp.last_checked_at);
               return (
@@ -127,10 +129,10 @@ export default function PriceComparison({ phone, variantId }: PriceComparisonPro
                   <td className="px-4 py-3">
                     <div>
                       <span className={`text-sm font-bold ${isLowest ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
-                        {formatPrice(sp.price)}
+                        {formatPrice(numPrice(sp.price))}
                       </span>
-                      {sp.mrp && sp.mrp > sp.price && (
-                        <span className="block text-xs text-gray-400 line-through">{formatPrice(sp.mrp)}</span>
+                      {sp.mrp && numPrice(sp.mrp) > numPrice(sp.price) && (
+                        <span className="block text-xs text-gray-400 line-through">{formatPrice(numPrice(sp.mrp))}</span>
                       )}
                     </div>
                     {discount > 0 && <Badge variant="error" className="mt-1">-{discount}%</Badge>}

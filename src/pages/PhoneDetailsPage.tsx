@@ -167,7 +167,7 @@ export default function PhoneDetailsPage() {
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{phone.rating.toFixed(1)}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{Number(phone.rating).toFixed(1)}</span>
             </div>
             <span className="text-sm text-gray-400">{phone.review_count} reviews</span>
             {phone.release_date && <span className="text-sm text-gray-400">| Released {phone.release_date}</span>}
@@ -274,17 +274,22 @@ export default function PhoneDetailsPage() {
           </div>
 
           {/* Best deal button */}
-          {selectedVariant?.store_prices && selectedVariant.store_prices.length > 0 && (
-            <a
-              href={selectedVariant.store_prices.sort((a, b) => a.price - b.price)[0].product_url || selectedVariant.store_prices[0].store?.website || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 text-white py-3 font-medium hover:bg-green-700 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              View Best Deal at {selectedVariant.store_prices.sort((a, b) => a.price - b.price)[0].store?.name}
-            </a>
-          )}
+          {selectedVariant?.store_prices && selectedVariant.store_prices.length > 0 && (() => {
+            const numP = (v: number | string) => typeof v === 'number' ? v : parseFloat(v) || 0;
+            const sortedPrices = [...selectedVariant.store_prices].sort((a, b) => numP(a.price) - numP(b.price));
+            const best = sortedPrices[0];
+            return (
+              <a
+                href={best.product_url || best.store?.website || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 text-white py-3 font-medium hover:bg-green-700 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View Best Deal at {best.store?.name}
+              </a>
+            );
+          })()}
         </div>
       </div>
 
@@ -385,17 +390,21 @@ export default function PhoneDetailsPage() {
           <GitCompare className="w-4 h-4" />
           {inCompare ? 'Added' : 'Compare'}
         </button>
-        {selectedVariant?.store_prices && selectedVariant.store_prices.length > 0 && (
-          <a
-            href={selectedVariant.store_prices.sort((a, b) => a.price - b.price)[0].product_url || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 text-white py-2.5 text-sm font-medium"
-          >
-            <Zap className="w-4 h-4" />
-            Best Deal
-          </a>
-        )}
+        {selectedVariant?.store_prices && selectedVariant.store_prices.length > 0 && (() => {
+          const numP = (v: number | string) => typeof v === 'number' ? v : parseFloat(v) || 0;
+          const best = [...selectedVariant.store_prices].sort((a, b) => numP(a.price) - numP(b.price))[0];
+          return (
+            <a
+              href={best.product_url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 text-white py-2.5 text-sm font-medium"
+            >
+              <Zap className="w-4 h-4" />
+              Best Deal
+            </a>
+          );
+        })()}
       </div>
     </div>
   );

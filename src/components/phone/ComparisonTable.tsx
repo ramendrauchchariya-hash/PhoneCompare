@@ -14,7 +14,7 @@ export default function ComparisonTable({ phones, onRemove, onAdd }: ComparisonT
   const specRows: { label: string; get: (p: Phone) => string | null | undefined; highlight?: boolean }[] = [
     { label: 'Lowest Price', get: (p) => { const lp = getLowestPriceForPhone(p); return lp.price !== null ? formatPrice(lp.price) : 'N/A'; }, highlight: true },
     { label: 'Starting Price', get: (p) => { const sp = getStartingPrice(p); return sp !== null ? formatPrice(sp) : 'N/A'; } },
-    { label: 'Rating', get: (p) => `${p.rating.toFixed(1)} (${p.review_count} reviews)`, highlight: true },
+    { label: 'Rating', get: (p) => `${Number(p.rating).toFixed(1)} (${p.review_count} reviews)`, highlight: true },
     { label: 'Display', get: (p) => [p.display_size, p.display_type].filter(Boolean).join(', ') },
     { label: 'Resolution', get: (p) => p.resolution },
     { label: 'Refresh Rate', get: (p) => p.refresh_rate },

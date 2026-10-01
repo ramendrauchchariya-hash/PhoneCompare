@@ -7,6 +7,8 @@ interface PriceHistoryChartProps {
   range?: '7d' | '30d' | '3m' | '6m' | '1y';
 }
 
+const numPrice = (v: number | string) => typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+
 export default function PriceHistoryChart({ data, range = '30d' }: PriceHistoryChartProps) {
   const filtered = useMemo(() => {
     const now = new Date();
@@ -18,26 +20,28 @@ export default function PriceHistoryChart({ data, range = '30d' }: PriceHistoryC
   if (filtered.length === 0) {
     return (
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">No price history available yet.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No price history available for this period.</p>
       </div>
     );
   }
 
-  const prices = filtered.map((d) => d.price);
+  const prices = filtered.map((d) => numPrice(d.price));
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  const range_val = max - min || 1;
+  const rangeVal = max - min || 1;
   const width = 100;
   const height = 200;
 
   const points = filtered.map((d, i) => {
     const x = (i / (filtered.length - 1 || 1)) * width;
-    const y = height - ((d.price - min) / range_val) * (height - 20) - 10;
-    return { x, y, price: d.price, date: d.recorded_at };
+    const y = height - ((numPrice(d.price) - min) / rangeVal) * (height - 20) - 10;
+    return { x, y, price: numPrice(d.price), date: d.recorded_at, store: d.store?.name };
   });
 
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   const areaD = `${pathD} L ${width} ${height} L 0 ${height} Z`;
+
+  const storeNames = [...new Set(filtered.map((d) => d.store?.name).filter(Boolean))];
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
@@ -46,6 +50,12 @@ export default function PriceHistoryChart({ data, range = '30d' }: PriceHistoryC
           <p className="text-xs text-gray-400">Lowest</p>
           <p className="text-sm font-bold text-green-600 dark:text-green-400">{formatPrice(min)}</p>
         </div>
+        {storeNames.length > 0 && (
+          <div className="text-center">
+            <p className="text-xs text-gray-400">Stores</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{storeNames.join(', ')}</p>
+          </div>
+        )}
         <div className="text-right">
           <p className="text-xs text-gray-400">Highest</p>
           <p className="text-sm font-bold text-red-500">{formatPrice(max)}</p>
@@ -70,6 +80,31 @@ export default function PriceHistoryChart({ data, range = '30d' }: PriceHistoryC
         <span>{new Date(filtered[0].recorded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
         <span>{new Date(filtered[filtered.length - 1].recorded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
       </div>
+
+      {filtered.length > 1 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <th className="py-2 font-medium">Date</th>
+                <th className="py-2 font-medium">Price</th>
+                <th className="py-2 font-medium hidden sm:table-cell">Store</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {[...filtered].reverse().slice(0, 10).map((d) => (
+                <tr key={d.id}>
+                  <td className="py-2 text-gray-500 dark:text-gray-400">
+                    {new Date(d.recorded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </td>
+                  <td className="py-2 font-medium text-gray-900 dark:text-white">{formatPrice(numPrice(d.price))}</td>
+                  <td className="py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{d.store?.name ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

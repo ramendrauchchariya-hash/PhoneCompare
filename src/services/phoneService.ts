@@ -1,6 +1,12 @@
 import supabase from '@/lib/supabase';
 import type { Brand, Phone, PhoneVariant, StorePrice, Store, Category, Review, PriceHistory, PhoneImage, PhoneColor } from '@/types';
 
+function toNum(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
 // ===== Brands =====
 export async function fetchBrands(): Promise<Brand[]> {
   const { data, error } = await supabase
@@ -126,7 +132,10 @@ export async function fetchPhoneBySlug(slug: string): Promise<Phone | null> {
   ]);
 
   data.images = imagesRes.data ?? [];
-  data.variants = variantsRes.data ?? [];
+  data.variants = (variantsRes.data ?? []).map((v: PhoneVariant) => ({
+    ...v,
+    price: toNum(v.price),
+  }));
   data.colors = colorsRes.data ?? [];
   data.categories = (categoriesRes.data ?? []).map((c) => c.category).filter(Boolean);
 
@@ -138,8 +147,13 @@ export async function fetchPhoneBySlug(slug: string): Promise<Phone | null> {
       .select('*, store:stores(*)')
       .in('variant_id', variantIds);
     const pricesByVariant = (prices ?? []).reduce<Record<string, StorePrice[]>>((acc, p) => {
+      const converted: StorePrice = {
+        ...p,
+        price: toNum(p.price) ?? 0,
+        mrp: toNum(p.mrp),
+      };
       if (!acc[p.variant_id]) acc[p.variant_id] = [];
-      acc[p.variant_id].push(p);
+      acc[p.variant_id].push(converted);
       return acc;
     }, {});
     data.variants = data.variants.map((v: PhoneVariant) => ({
@@ -205,18 +219,18 @@ export async function fetchStorePricesForVariant(variantId: string): Promise<Sto
     .eq('variant_id', variantId)
     .order('price', { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((p) => ({ ...p, price: toNum(p.price) ?? 0, mrp: toNum(p.mrp) }));
 }
 
 // ===== Price History =====
 export async function fetchPriceHistory(variantId: string): Promise<PriceHistory[]> {
   const { data, error } = await supabase
     .from('price_history')
-    .select('*')
+    .select('*, store:stores(name)')
     .eq('variant_id', variantId)
     .order('recorded_at', { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((p) => ({ ...p, price: toNum(p.price) ?? 0 }));
 }
 
 // ===== Reviews =====
@@ -240,8 +254,10 @@ export function getLowestPriceForPhone(phone: Phone): { price: number | null; st
   for (const variant of phone.variants) {
     if (!variant.store_prices) continue;
     for (const sp of variant.store_prices) {
-      if (lowest === null || sp.price < lowest) {
-        lowest = sp.price;
+      const price = toNum(sp.price);
+      if (price === null) continue;
+      if (lowest === null || price < lowest) {
+        lowest = price;
         storeName = sp.store?.name ?? null;
         storeSlug = sp.store?.slug ?? null;
       }
@@ -252,14 +268,14 @@ export function getLowestPriceForPhone(phone: Phone): { price: number | null; st
 
 export function getStartingPrice(phone: Phone): number | null {
   if (!phone.variants || phone.variants.length === 0) return null;
-  const prices = phone.variants.map((v) => v.price).filter((p): p is number => p !== null);
+  const prices = phone.variants.map((v) => toNum(v.price)).filter((p): p is number => p !== null);
   if (prices.length === 0) return null;
   return Math.min(...prices);
 }
 
 export function getLowestStorePriceForVariant(variant: PhoneVariant): StorePrice | null {
   if (!variant.store_prices || variant.store_prices.length === 0) return null;
-  return variant.store_prices.reduce((min, sp) => (sp.price < min.price ? sp : min), variant.store_prices[0]);
+  return variant.store_prices.reduce((min, sp) => (toNum(sp.price)! < toNum(min.price)! ? sp : min), variant.store_prices[0]);
 }
 
 export function getAllStorePricesForPhone(phone: Phone): { store: Store; price: number; mrp: number | null; variant: PhoneVariant; lastChecked: string }[] {
@@ -269,7 +285,7 @@ export function getAllStorePricesForPhone(phone: Phone): { store: Store; price: 
     if (!variant.store_prices) continue;
     for (const sp of variant.store_prices) {
       if (sp.store) {
-        results.push({ store: sp.store, price: sp.price, mrp: sp.mrp, variant, lastChecked: sp.last_checked_at });
+        results.push({ store: sp.store, price: toNum(sp.price) ?? 0, mrp: toNum(sp.mrp), variant, lastChecked: sp.last_checked_at });
       }
     }
   }

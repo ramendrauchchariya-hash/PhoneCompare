@@ -144,7 +144,7 @@ export default function AdminPhonesPage() {
                       {phone.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-sm text-gray-600 dark:text-gray-300">{phone.rating.toFixed(1)}</td>
+                  <td className="px-4 py-3 hidden md:table-cell text-sm text-gray-600 dark:text-gray-300">{Number(phone.rating).toFixed(1)}</td>
                   <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-400">{timeAgo(phone.created_at)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">

@@ -78,7 +78,7 @@ export default function FavoritesPage() {
                   <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{phone.name}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span className="text-xs text-gray-600 dark:text-gray-300">{phone.rating.toFixed(1)}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-300">{Number(phone.rating).toFixed(1)}</span>
                   </div>
                   {price !== null && <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{formatPrice(price)}</p>}
                 </div>

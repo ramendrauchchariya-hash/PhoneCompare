@@ -63,7 +63,7 @@ export default function PhoneCard({ phone }: { phone: Phone }) {
         {/* Rating */}
         <div className="flex items-center gap-1 mb-2">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{phone.rating.toFixed(1)}</span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{Number(phone.rating).toFixed(1)}</span>
           <span className="text-xs text-gray-400">({phone.review_count})</span>
         </div>
 
