@@ -146,6 +146,54 @@ function updatePhoneSEO(phone: Phone) {
   schemaScript.textContent = JSON.stringify(productSchema);
 
   document.head.appendChild(schemaScript);
+    // Breadcrumb Schema
+  document
+    .querySelectorAll('script[data-phonecompare-breadcrumb-schema]')
+    .forEach((element) => element.remove());
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Smartphones',
+        item: `${SITE_URL}/phones`,
+      },
+      ...(phone.brand?.name && phone.brand?.slug
+        ? [
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: phone.brand.name,
+              item: `${SITE_URL}/brand/${phone.brand.slug}`,
+            },
+          ]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: phone.brand?.name && phone.brand?.slug ? 4 : 3,
+        name: phone.name,
+      },
+    ],
+  };
+
+  const breadcrumbScript = document.createElement('script');
+  breadcrumbScript.type = 'application/ld+json';
+  breadcrumbScript.setAttribute(
+    'data-phonecompare-breadcrumb-schema',
+    'true'
+  );
+  breadcrumbScript.textContent = JSON.stringify(breadcrumbSchema);
+
+  document.head.appendChild(breadcrumbScript);
 }
 
 export default function PhoneDetailsPage() {
