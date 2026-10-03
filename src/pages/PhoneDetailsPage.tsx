@@ -16,6 +16,138 @@ import { useToast } from '@/contexts/ToastContext';
 import EmptyState from '@/components/ui/EmptyState';
 import { Radio } from 'lucide-react';
 
+const SITE_URL = 'https://phonecompare-one.vercel.app';
+
+function updatePhoneSEO(phone: Phone) {
+  const url = `${SITE_URL}/phones/${phone.slug}`;
+
+  const title = `${phone.name}${phone.brand?.name ? ` - ${phone.brand.name}` : ''} | PhoneCompare`;
+
+  const description =
+    phone.description ||
+    `${phone.name}${phone.brand?.name ? ` by ${phone.brand.name}` : ''}. Compare specifications, variants, prices and deals on PhoneCompare.`;
+
+  // Title
+  document.title = title;
+
+  // Description
+  let descriptionTag = document.querySelector('meta[name="description"]');
+
+  if (!descriptionTag) {
+    descriptionTag = document.createElement('meta');
+    descriptionTag.setAttribute('name', 'description');
+    document.head.appendChild(descriptionTag);
+  }
+
+  descriptionTag.setAttribute('content', description);
+
+  // Canonical
+  let canonical = document.querySelector('link[rel="canonical"]');
+
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonical);
+  }
+
+  canonical.setAttribute('href', url);
+
+  // Remove previous PhoneCompare Product schema
+  document
+    .querySelectorAll('script[data-phonecompare-product-schema]')
+    .forEach((element) => element.remove());
+
+  const validImages = (phone.images ?? [])
+    .map((image) => image.image_url)
+    .filter((image): image is string => Boolean(image));
+
+  const validVariants = (phone.variants ?? []).filter((variant) => {
+    const price = Number(variant.price);
+    return Number.isFinite(price) && price > 0;
+  });
+
+  const lowestVariant = validVariants.length
+    ? [...validVariants].sort(
+        (a, b) => Number(a.price) - Number(b.price)
+      )[0]
+    : null;
+
+  const productSchema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: phone.name,
+    url,
+  };
+
+  if (phone.description) {
+    productSchema.description = phone.description;
+  }
+
+  if (phone.brand?.name) {
+    productSchema.brand = {
+      '@type': 'Brand',
+      name: phone.brand.name,
+    };
+  }
+
+  if (phone.model_number) {
+    productSchema.mpn = phone.model_number;
+  }
+
+  if (validImages.length > 0) {
+    productSchema.image = validImages;
+  }
+
+  if (phone.rating && Number(phone.rating) > 0 && phone.review_count > 0) {
+    productSchema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: Number(phone.rating),
+      reviewCount: Number(phone.review_count),
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
+
+  if (lowestVariant) {
+    const variantAvailability =
+      lowestVariant.availability?.toLowerCase();
+
+    let availability =
+      'https://schema.org/InStock';
+
+    if (variantAvailability === 'out_of_stock') {
+      availability = 'https://schema.org/OutOfStock';
+    } else if (variantAvailability === 'preorder') {
+      availability = 'https://schema.org/PreOrder';
+    }
+
+    const offer: Record<string, unknown> = {
+      '@type': 'Offer',
+      url,
+      price: Number(lowestVariant.price),
+      priceCurrency: 'INR',
+      availability,
+    };
+
+    if (lowestVariant.sku) {
+      offer.sku = lowestVariant.sku;
+    }
+
+    productSchema.offers = offer;
+  }
+
+  const schemaScript = document.createElement('script');
+
+  schemaScript.type = 'application/ld+json';
+  schemaScript.setAttribute(
+    'data-phonecompare-product-schema',
+    'true'
+  );
+  schemaScript.textContent = JSON.stringify(productSchema);
+
+  document.head.appendChild(schemaScript);
+}
+
 export default function PhoneDetailsPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -46,6 +178,7 @@ export default function PhoneDetailsPage() {
           return;
         }
         setPhone(data);
+        updatePhoneSEO(data);
         if (data.variants && data.variants.length > 0) {
           setSelectedVariantId(data.variants[0].id);
         }
