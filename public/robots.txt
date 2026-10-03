@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://phonecompare-one.vercel.app/sitemap.xml
